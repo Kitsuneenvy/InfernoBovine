@@ -13,11 +13,15 @@ public class GameGUI : MonoBehaviour {
 	bool supportStructureListOpen = false;
 
 	bool placingObject = false;
+	bool selectingObjects = false;
 
 	Rect resourceMenuRect = new Rect(Screen.width/10,Screen.height/10,Screen.width/10,Screen.height/15);
 	Rect selectionMenuRect = new Rect(Screen.width/10,Screen.height-Screen.height/5,Screen.width/5,Screen.height/6);
 	Rect constructionMenuRect = new Rect(Screen.width-Screen.width/3-Screen.width/10,Screen.height-Screen.height/5,Screen.width/3,Screen.height/6);
 	Rect constructionListRect = new Rect(0,0,0,0);
+
+	Vector2 originalSelectPosition = Vector2.zero;
+	Vector2 endSelectPosition = Vector2.zero;
 
 	public GUISkin defaultSkin;
 	public Texture primary;
@@ -26,9 +30,12 @@ public class GameGUI : MonoBehaviour {
 
 	RaycastHit2D rayHit;
 
-	GameObject selectedObject = null;
+	public GameObject selectionBox;
+	public GameObject newBox = null;
 
-	public List<GameObject> PrimaryBuildings = new List<GameObject>();
+	public List<GameObject> primaryBuildings = new List<GameObject>();
+	public List<GameObject> selectedObjects = new List<GameObject>();
+	List<Texture2D> selectedTextures = new List<Texture2D>();
 
 	// Use this for initialization
 	void Start () {
@@ -59,16 +66,28 @@ public class GameGUI : MonoBehaviour {
 		}
 		if(Input.GetKeyDown(KeyCode.Mouse0)){
 			if(placingObject==false){
-				rayHit = Physics2D.Raycast(Camera.main.ScreenToWorldPoint(Input.mousePosition),Vector2.zero);
-				if(rayHit.transform == null){
-					selectedObject = null;
-				} else {
-					selectedObject = rayHit.transform.gameObject;
-				}
+				selectingObjects = true;
+				selectedObjects.Clear();
+				newBox = GameObject.Instantiate(selectionBox);
+				originalSelectPosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+//				rayHit = Physics2D.Raycast(Camera.main.ScreenToWorldPoint(Input.mousePosition),Vector2.zero);
+//				if(rayHit.transform == null){
+//					selectedObjects.Clear();
+//				} else {
+//					selectedObjects.Add(rayHit.transform.gameObject);
+//				}
 			} else {
-				Debug.Log(selectedObject.ToString());
-				GameObject.Instantiate(selectedObject,new Vector2(Camera.main.ScreenToWorldPoint(Input.mousePosition).x,Camera.main.ScreenToWorldPoint(Input.mousePosition).y),Quaternion.identity);
+				GameObject.Instantiate(selectedObjects[0],new Vector2(Camera.main.ScreenToWorldPoint(Input.mousePosition).x,Camera.main.ScreenToWorldPoint(Input.mousePosition).y),Quaternion.identity);
 				placingObject = false;
+			}
+		}
+		if(Input.GetKeyUp(KeyCode.Mouse0)){
+			selectingObjects = false;
+			if(newBox!=null){
+				endSelectPosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+				newBox.transform.position =  originalSelectPosition + (endSelectPosition - originalSelectPosition)/2;
+				newBox.GetComponent<BoxCollider2D>().size = new Vector2(Mathf.Abs(endSelectPosition.x - originalSelectPosition.x),Mathf.Abs(endSelectPosition.y - originalSelectPosition.y));
+				newBox.GetComponent<SelectionBox>().enabledBox = true;
 			}
 		}
 	}
@@ -109,10 +128,19 @@ public class GameGUI : MonoBehaviour {
 	}
 	void selectionMenuFunction(int id){
 		GUILayout.BeginHorizontal();
-		if(selectedObject!=null){
-			GUILayout.Label(selectedObject.GetComponent<SpriteRenderer>().sprite.texture);
+		if(selectedObjects.Count==1){
+			GUILayout.Label(selectedObjects[0].GetComponent<SpriteRenderer>().sprite.texture);
 			GUILayout.Label("Unit image here");
 			GUILayout.Label("and here");
+		}
+		if(selectedObjects.Count>1){
+			int i = 0;
+			foreach(GameObject selectedObject in selectedObjects){
+				selectedTextures.Add(selectedObjects[i].GetComponent<SpriteRenderer>().sprite.texture);
+				GUILayout.Label(selectedTextures[i]);
+				i++;
+			}
+
 		}
 		GUILayout.EndHorizontal();
 	}
@@ -139,13 +167,13 @@ public class GameGUI : MonoBehaviour {
 	void primaryListFunction(int id){
 		GUILayout.BeginVertical();
 		GUILayout.BeginHorizontal();
-		if(GUILayout.Button(PrimaryBuildings[0].GetComponent<SpriteRenderer>().sprite.texture)){
+		if(GUILayout.Button(primaryBuildings[0].GetComponent<SpriteRenderer>().sprite.texture)){
 			placingObject = true;
-			selectedObject = PrimaryBuildings[0];
+			selectedObjects.Add(primaryBuildings[0]);
 		}
-		if(GUILayout.Button(PrimaryBuildings[1].GetComponent<SpriteRenderer>().sprite.texture)){
+		if(GUILayout.Button(primaryBuildings[1].GetComponent<SpriteRenderer>().sprite.texture)){
 			placingObject = true;
-			selectedObject = PrimaryBuildings[1];
+			selectedObjects.Add(primaryBuildings[1]);
 		}
 		GUILayout.EndHorizontal();
 		GUILayout.EndVertical();
