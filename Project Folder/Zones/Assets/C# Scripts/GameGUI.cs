@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using UnityEngine.EventSystems;
 using System.Collections;
 using System.Collections.Generic;
 
@@ -14,19 +15,27 @@ public class GameGUI : MonoBehaviour {
 
 	bool placingObject = false;
 	bool selectingObjects = false;
+	bool newSelection = false;
+
 
 	Rect resourceMenuRect = new Rect(Screen.width/10,Screen.height/10,Screen.width/10,Screen.height/15);
 	Rect selectionMenuRect = new Rect(Screen.width/10,Screen.height-Screen.height/5,Screen.width/5,Screen.height/6);
 	Rect constructionMenuRect = new Rect(Screen.width-Screen.width/3-Screen.width/10,Screen.height-Screen.height/5,Screen.width/3,Screen.height/6);
 	Rect constructionListRect = new Rect(0,0,0,0);
 
+	List<Rect> guiRects = new List<Rect>();
+
 	Vector2 originalSelectPosition = Vector2.zero;
 	Vector2 endSelectPosition = Vector2.zero;
+
+	int gold = 2000;
 
 	public GUISkin defaultSkin;
 	public Texture primary;
 	public Texture secondary;
 	public Texture support;
+	public Texture2D structureSelect;
+	public Texture2D unitSelect;
 
 	RaycastHit2D rayHit;
 
@@ -37,13 +46,27 @@ public class GameGUI : MonoBehaviour {
 	public List<GameObject> selectedObjects = new List<GameObject>();
 	List<Texture2D> selectedTextures = new List<Texture2D>();
 
+	Vector2 movementWaypoint = Vector2.zero;
+	bool moving = false;
+
 	// Use this for initialization
 	void Start () {
 		constructionListRect = new Rect(constructionMenuRect.x,constructionMenuRect.y-Screen.height/3,constructionMenuRect.width,Screen.height/3);
+
+
 	}
 	
 	// Update is called once per frame
 	void Update () {
+		if(primaryStructureListOpen||secondaryStructureListOpen||supportStructureListOpen){
+			if(!guiRects.Contains(constructionListRect)){
+				guiRects.Add(constructionListRect);
+			}
+		} else {
+			if(guiRects.Contains(constructionListRect)){
+				guiRects.Remove(constructionListRect);
+			}
+		}
 		if(Input.GetKeyDown(KeyCode.Escape)){
 			primaryStructureListOpen = false;
 			secondaryStructureListOpen = false;
@@ -65,29 +88,56 @@ public class GameGUI : MonoBehaviour {
 			supportStructureListOpen = true;
 		}
 		if(Input.GetKeyDown(KeyCode.Mouse0)){
+			guiRects.Add(resourceMenuRect);
+			guiRects.Add(selectionMenuRect);
+			guiRects.Add(constructionMenuRect);
 			if(placingObject==false){
-				selectingObjects = true;
-				selectedObjects.Clear();
-				newBox = GameObject.Instantiate(selectionBox);
-				originalSelectPosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-//				rayHit = Physics2D.Raycast(Camera.main.ScreenToWorldPoint(Input.mousePosition),Vector2.zero);
-//				if(rayHit.transform == null){
-//					selectedObjects.Clear();
-//				} else {
-//					selectedObjects.Add(rayHit.transform.gameObject);
-//				}
+				bool clickingGUI = false;
+
+				foreach(Rect uiRect in guiRects){
+					if(uiRect.Contains(new Vector3(Input.mousePosition.x,Screen.height-Input.mousePosition.y,0))){
+						
+						clickingGUI = true;
+					}
+				}
+				if(clickingGUI){
+					
+				} else {
+					selectingObjects = true;
+					selectedObjects.Clear();
+					newBox = GameObject.Instantiate(selectionBox);
+					originalSelectPosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+				}
 			} else {
 				GameObject.Instantiate(selectedObjects[0],new Vector2(Camera.main.ScreenToWorldPoint(Input.mousePosition).x,Camera.main.ScreenToWorldPoint(Input.mousePosition).y),Quaternion.identity);
 				placingObject = false;
+				gold-=selectedObjects[0].GetComponent<Stats>().cost;
 			}
 		}
 		if(Input.GetKeyUp(KeyCode.Mouse0)){
+			guiRects.Clear();
 			selectingObjects = false;
 			if(newBox!=null){
-				endSelectPosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-				newBox.transform.position =  originalSelectPosition + (endSelectPosition - originalSelectPosition)/2;
-				newBox.GetComponent<BoxCollider2D>().size = new Vector2(Mathf.Abs(endSelectPosition.x - originalSelectPosition.x),Mathf.Abs(endSelectPosition.y - originalSelectPosition.y));
-				newBox.GetComponent<SelectionBox>().enabledBox = true;
+					newSelection = true;
+					endSelectPosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+					newBox.transform.position =  originalSelectPosition + (endSelectPosition - originalSelectPosition)/2;
+					newBox.GetComponent<BoxCollider2D>().size = new Vector2(Mathf.Abs(endSelectPosition.x - originalSelectPosition.x),Mathf.Abs(endSelectPosition.y - originalSelectPosition.y));
+					newBox.GetComponent<SelectionBox>().enabledBox = true;
+				}
+		}
+
+		if(Input.GetKey(KeyCode.Mouse1)){
+			movementWaypoint = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+			moving = true;
+		}
+
+		if(moving==true){
+			if(selectedObjects.Count>0){
+				foreach(GameObject selected in selectedObjects){
+					if(selected.GetComponent<Stats>().structure==false){
+						selected.GetComponent<Stats>().startMove(movementWaypoint);
+					}
+				}
 			}
 		}
 	}
@@ -124,23 +174,42 @@ public class GameGUI : MonoBehaviour {
 	}
 
 	void resourceMenuFunction(int id){
-		GUILayout.Label("GOLD");
+		GUILayout.Label(gold.ToString());
 	}
 	void selectionMenuFunction(int id){
 		GUILayout.BeginHorizontal();
-		if(selectedObjects.Count==1){
-			GUILayout.Label(selectedObjects[0].GetComponent<SpriteRenderer>().sprite.texture);
-			GUILayout.Label("Unit image here");
-			GUILayout.Label("and here");
-		}
-		if(selectedObjects.Count>1){
-			int i = 0;
-			foreach(GameObject selectedObject in selectedObjects){
-				selectedTextures.Add(selectedObjects[i].GetComponent<SpriteRenderer>().sprite.texture);
-				GUILayout.Label(selectedTextures[i]);
-				i++;
+		//if(newSelection==true){
+			if(selectedObjects.Count==1){
+				GUILayout.Label(selectedObjects[0].GetComponent<SpriteRenderer>().sprite.texture);
+				if(selectedObjects[0].GetComponent<Stats>().createdObjects.Count>0){
+					if(GUILayout.Button(selectedObjects[0].GetComponent<Stats>().createdObjects[0].GetComponent<SpriteRenderer>().sprite.texture)){
+						GameObject.Instantiate(selectedObjects[0].GetComponent<Stats>().createdObjects[0], (selectedObjects[0].transform.position+ Vector3.left),Quaternion.identity);
+						gold-=selectedObjects[0].GetComponent<Stats>().createdObjects[0].GetComponent<Stats>().cost;
+					}
+				}
 			}
+			if(selectedObjects.Count>1){
+				int structureCount = 0;
+				int unitCount = 0;
+				foreach(GameObject selectedObject in selectedObjects){
+					if(selectedObject.GetComponent<Stats>().structure == true){
+						structureCount++;
+					} else if (selectedObject.GetComponent<Stats>().structure == false){
+						unitCount++;
+					}
+					for(int i = 0; i<structureCount; i++){
+						selectedTextures.Add(structureSelect);
+					}
+					for(int j = 0; j<structureCount; j++){
+						selectedTextures.Add(unitSelect);
+					}
+					foreach(Texture2D selectTexture in selectedTextures){
+						GUILayout.Label(selectTexture);
+					}
+				}
 
+		//	}
+		//	newSelection=false;
 		}
 		GUILayout.EndHorizontal();
 	}
