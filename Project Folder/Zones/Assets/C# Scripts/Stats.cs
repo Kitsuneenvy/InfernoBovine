@@ -22,7 +22,9 @@ public class Stats : MonoBehaviour {
 	void Update () {
 		if(moving==true){
 			if(Vector2.Distance(new Vector2(transform.position.x,transform.position.y),targetLocation)>0.05f){
-				this.transform.position = Vector3.Lerp(this.transform.position,targetLocation,speed*(Vector3.Distance(originalPosition,transform.position)/distanceToTarget));
+				transform.position = Vector3.MoveTowards(transform.position,targetLocation,speed*Time.deltaTime);
+			} else {
+				moving =false;
 			}
 		}
 	

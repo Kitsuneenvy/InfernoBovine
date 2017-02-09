@@ -28,17 +28,19 @@ public class SelectionBox : MonoBehaviour {
 		}
 	}
 
-	void OnTriggerStay2D(Collider2D collider){
-		if(enabledBox){
-			if(!Camera.main.gameObject.GetComponent<GameGUI>().selectedObjects.Contains(collider.gameObject)){
-				Camera.main.gameObject.GetComponent<GameGUI>().selectedObjects.Add(collider.gameObject);
-			}
-		}
-	}
+//	void OnTriggerStay2D(Collider2D collider){
+//		if(enabledBox){
+//			if(!Camera.main.gameObject.GetComponent<GameGUI>().selectedObjects.Contains(collider.gameObject)){
+//				Camera.main.gameObject.GetComponent<GameGUI>().selectedObjects.Add(collider.gameObject);
+//				Camera.main.gameObject.GetComponent<GameGUI>().newSelection = true;
+//			}
+//		}
+//	}
 	void OnTriggerEnter2D(Collider2D collider){
 		if(enabledBox){
 			if(!Camera.main.gameObject.GetComponent<GameGUI>().selectedObjects.Contains(collider.gameObject)){
 				Camera.main.gameObject.GetComponent<GameGUI>().selectedObjects.Add(collider.gameObject);
+				Camera.main.gameObject.GetComponent<GameGUI>().newSelection = true;
 			}
 		}
 	}

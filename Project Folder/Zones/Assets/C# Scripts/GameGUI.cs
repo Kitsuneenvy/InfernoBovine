@@ -15,7 +15,9 @@ public class GameGUI : MonoBehaviour {
 
 	bool placingObject = false;
 	bool selectingObjects = false;
-	bool newSelection = false;
+	public bool newSelection = false;
+
+	bool showUnitButton = false;
 
 
 	Rect resourceMenuRect = new Rect(Screen.width/10,Screen.height/10,Screen.width/10,Screen.height/15);
@@ -91,6 +93,7 @@ public class GameGUI : MonoBehaviour {
 			guiRects.Add(resourceMenuRect);
 			guiRects.Add(selectionMenuRect);
 			guiRects.Add(constructionMenuRect);
+
 			if(placingObject==false){
 				bool clickingGUI = false;
 
@@ -105,6 +108,8 @@ public class GameGUI : MonoBehaviour {
 				} else {
 					selectingObjects = true;
 					selectedObjects.Clear();
+					selectedTextures.Clear();
+					showUnitButton = false;
 					newBox = GameObject.Instantiate(selectionBox);
 					originalSelectPosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
 				}
@@ -112,13 +117,13 @@ public class GameGUI : MonoBehaviour {
 				GameObject.Instantiate(selectedObjects[0],new Vector2(Camera.main.ScreenToWorldPoint(Input.mousePosition).x,Camera.main.ScreenToWorldPoint(Input.mousePosition).y),Quaternion.identity);
 				placingObject = false;
 				gold-=selectedObjects[0].GetComponent<Stats>().cost;
+				selectedObjects.Clear();
 			}
 		}
 		if(Input.GetKeyUp(KeyCode.Mouse0)){
 			guiRects.Clear();
 			selectingObjects = false;
 			if(newBox!=null){
-					newSelection = true;
 					endSelectPosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
 					newBox.transform.position =  originalSelectPosition + (endSelectPosition - originalSelectPosition)/2;
 					newBox.GetComponent<BoxCollider2D>().size = new Vector2(Mathf.Abs(endSelectPosition.x - originalSelectPosition.x),Mathf.Abs(endSelectPosition.y - originalSelectPosition.y));
@@ -126,7 +131,7 @@ public class GameGUI : MonoBehaviour {
 				}
 		}
 
-		if(Input.GetKey(KeyCode.Mouse1)){
+		if(Input.GetKeyDown(KeyCode.Mouse1)){
 			movementWaypoint = Camera.main.ScreenToWorldPoint(Input.mousePosition);
 			moving = true;
 		}
@@ -139,6 +144,11 @@ public class GameGUI : MonoBehaviour {
 					}
 				}
 			}
+			moving = false;
+		}
+		if(newSelection==true){
+			newSelectionFunction();
+			newSelection = false;
 		}
 	}
 
@@ -178,38 +188,14 @@ public class GameGUI : MonoBehaviour {
 	}
 	void selectionMenuFunction(int id){
 		GUILayout.BeginHorizontal();
-		//if(newSelection==true){
-			if(selectedObjects.Count==1){
-				GUILayout.Label(selectedObjects[0].GetComponent<SpriteRenderer>().sprite.texture);
-				if(selectedObjects[0].GetComponent<Stats>().createdObjects.Count>0){
-					if(GUILayout.Button(selectedObjects[0].GetComponent<Stats>().createdObjects[0].GetComponent<SpriteRenderer>().sprite.texture)){
-						GameObject.Instantiate(selectedObjects[0].GetComponent<Stats>().createdObjects[0], (selectedObjects[0].transform.position+ Vector3.left),Quaternion.identity);
-						gold-=selectedObjects[0].GetComponent<Stats>().createdObjects[0].GetComponent<Stats>().cost;
-					}
-				}
+			foreach(Texture2D selectTexture in selectedTextures){
+				GUILayout.Label(selectTexture);
 			}
-			if(selectedObjects.Count>1){
-				int structureCount = 0;
-				int unitCount = 0;
-				foreach(GameObject selectedObject in selectedObjects){
-					if(selectedObject.GetComponent<Stats>().structure == true){
-						structureCount++;
-					} else if (selectedObject.GetComponent<Stats>().structure == false){
-						unitCount++;
-					}
-					for(int i = 0; i<structureCount; i++){
-						selectedTextures.Add(structureSelect);
-					}
-					for(int j = 0; j<structureCount; j++){
-						selectedTextures.Add(unitSelect);
-					}
-					foreach(Texture2D selectTexture in selectedTextures){
-						GUILayout.Label(selectTexture);
-					}
-				}
-
-		//	}
-		//	newSelection=false;
+		if(showUnitButton==true){
+			if(GUILayout.Button(selectedObjects[0].GetComponent<Stats>().createdObjects[0].GetComponent<SpriteRenderer>().sprite.texture)){
+				GameObject.Instantiate(selectedObjects[0].GetComponent<Stats>().createdObjects[0], (selectedObjects[0].transform.position+ Vector3.left),Quaternion.identity);
+				gold-=selectedObjects[0].GetComponent<Stats>().createdObjects[0].GetComponent<Stats>().cost;
+			}
 		}
 		GUILayout.EndHorizontal();
 	}
@@ -255,5 +241,38 @@ public class GameGUI : MonoBehaviour {
 
 	void supportListFunction(int id){
 
+	}
+
+	public void newSelectionFunction(){
+		if(selectedObjects.Count==1){
+			selectedTextures.Add(selectedObjects[0].GetComponent<SpriteRenderer>().sprite.texture);
+			if(selectedObjects[0].GetComponent<Stats>().createdObjects.Count>0){
+				showUnitButton = true;
+			} else {
+				showUnitButton = false;
+			}
+		}
+		if(selectedObjects.Count>1){
+			int structureCount = 0;
+			int unitCount = 0;
+			foreach(GameObject selectedObject in selectedObjects){
+				if(selectedObject.GetComponent<Stats>().structure == true){
+					structureCount++;
+				} else if (selectedObject.GetComponent<Stats>().structure == false){
+					unitCount++;
+				}
+			
+			}
+			if(structureCount!=0){
+				for(int i = 0; i<structureCount; i++){
+					selectedTextures.Add(structureSelect);
+				}
+			}
+			if(unitCount!=0){
+				for(int j = 0; j<unitCount; j++){
+					selectedTextures.Add(unitSelect);
+				}
+			}
+		}
 	}
 }
