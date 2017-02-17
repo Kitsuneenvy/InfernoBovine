@@ -2,6 +2,10 @@
 using System.Collections;
 using System.Collections.Generic;
 
+
+
+public enum auraInfluence {none = 0, lawful, holy, sinister, magical}
+
 public class Stats : MonoBehaviour {
 
 	public int cost = 10;
@@ -12,6 +16,9 @@ public class Stats : MonoBehaviour {
 	Vector2 targetLocation = Vector2.zero;
 	Vector3 originalPosition = Vector3.zero;
 	float distanceToTarget = 0;
+
+
+	public int auraInf = 0;
 
 	// Use this for initialization
 	void Start () {

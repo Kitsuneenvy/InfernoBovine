@@ -38,9 +38,11 @@ public class SelectionBox : MonoBehaviour {
 //	}
 	void OnTriggerEnter2D(Collider2D collider){
 		if(enabledBox){
-			if(!Camera.main.gameObject.GetComponent<GameGUI>().selectedObjects.Contains(collider.gameObject)){
-				Camera.main.gameObject.GetComponent<GameGUI>().selectedObjects.Add(collider.gameObject);
-				Camera.main.gameObject.GetComponent<GameGUI>().newSelection = true;
+			if(collider.tag!="Aura"){
+				if(!Camera.main.gameObject.GetComponent<GameGUI>().selectedObjects.Contains(collider.gameObject)){
+					Camera.main.gameObject.GetComponent<GameGUI>().selectedObjects.Add(collider.gameObject);
+					Camera.main.gameObject.GetComponent<GameGUI>().newSelection = true;
+				}
 			}
 		}
 	}

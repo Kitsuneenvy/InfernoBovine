@@ -4,6 +4,7 @@ using System.Collections;
 public class Aura : MonoBehaviour {
 
 	public int auraRange = 5;
+	public auraInfluence auraType;
 
 	// Use this for initialization
 	void Start () {
@@ -17,5 +18,11 @@ public class Aura : MonoBehaviour {
 
 	void AuraEffects(){
 		
+	}
+
+	void OnTriggerStay2D(Collider2D triggeringObject){
+		if(triggeringObject.tag == "SecondaryStructure"){
+			triggeringObject.gameObject.GetComponent<Stats>().auraInf = (int)auraType;
+		}	
 	}
 }

@@ -192,9 +192,10 @@ public class GameGUI : MonoBehaviour {
 				GUILayout.Label(selectTexture);
 			}
 		if(showUnitButton==true){
-			if(GUILayout.Button(selectedObjects[0].GetComponent<Stats>().createdObjects[0].GetComponent<SpriteRenderer>().sprite.texture)){
-				GameObject.Instantiate(selectedObjects[0].GetComponent<Stats>().createdObjects[0], (selectedObjects[0].transform.position+ Vector3.left),Quaternion.identity);
-				gold-=selectedObjects[0].GetComponent<Stats>().createdObjects[0].GetComponent<Stats>().cost;
+			int i = selectedObjects[0].GetComponent<Stats>().auraInf;
+			if(GUILayout.Button(selectedObjects[0].GetComponent<Stats>().createdObjects[i].GetComponent<SpriteRenderer>().sprite.texture)){
+				GameObject.Instantiate(selectedObjects[0].GetComponent<Stats>().createdObjects[i], (selectedObjects[0].transform.position+ Vector3.left),Quaternion.identity);
+				gold-=selectedObjects[0].GetComponent<Stats>().createdObjects[i].GetComponent<Stats>().cost;
 			}
 		}
 		GUILayout.EndHorizontal();
