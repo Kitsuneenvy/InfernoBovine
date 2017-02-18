@@ -118,6 +118,8 @@ public class GameGUI : MonoBehaviour {
 				placingObject = false;
 				gold-=selectedObjects[0].GetComponent<Stats>().cost;
 				selectedObjects.Clear();
+				selectedTextures.Clear();
+				this.GetComponent<AstarPath>().Scan();
 			}
 		}
 		if(Input.GetKeyUp(KeyCode.Mouse0)){
@@ -224,12 +226,18 @@ public class GameGUI : MonoBehaviour {
 		GUILayout.BeginVertical();
 		GUILayout.BeginHorizontal();
 		if(GUILayout.Button(primaryBuildings[0].GetComponent<SpriteRenderer>().sprite.texture)){
+			selectedObjects.Clear();
+			selectedTextures.Clear();
 			placingObject = true;
 			selectedObjects.Add(primaryBuildings[0]);
+			selectedTextures.Add(selectedObjects[0].GetComponent<SpriteRenderer>().sprite.texture);
 		}
 		if(GUILayout.Button(primaryBuildings[1].GetComponent<SpriteRenderer>().sprite.texture)){
+			selectedObjects.Clear();
+			selectedTextures.Clear();
 			placingObject = true;
 			selectedObjects.Add(primaryBuildings[1]);
+			selectedTextures.Add(selectedObjects[0].GetComponent<SpriteRenderer>().sprite.texture);
 		}
 		GUILayout.EndHorizontal();
 		GUILayout.EndVertical();
