@@ -7,6 +7,8 @@ using Pathfinding;
 
 public enum auraInfluence {none = 0, lawful, holy, sinister, magical}
 
+
+[System.Serializable]
 public class Stats : MonoBehaviour {
 
 	public int cost = 10;
@@ -19,7 +21,6 @@ public class Stats : MonoBehaviour {
 	Vector3 originalPosition = Vector3.zero;
 	Vector3 nextWaypointPosition = Vector3.zero;
 	int currentWaypoint = 0;
-	float distanceToTarget = 0;
 
 	Path currentPath;
 	Seeker seekerComponent;
@@ -59,17 +60,27 @@ public class Stats : MonoBehaviour {
 	public void startMove(Vector2 newPosition){
 		originalPosition = this.transform.position;
 		targetLocation = newPosition;
-		distanceToTarget = Vector3.Distance(originalPosition, targetLocation);
 		startmove = true;
 	}
 
 	void OnPathComplete(Path p){
-		Debug.Log(p.error);
 		if(!p.error){
 			currentWaypoint = 0;
 			currentPath = p;
 			moving=true;
 			nextWaypointPosition = p.vectorPath[currentWaypoint];
+		}
+	}
+
+	void OnSave(){
+		if(this.GetComponent<Seeker>()!=null){
+			this.GetComponent<Seeker>().enabled = false;
+		}
+	}
+
+	void OnLoad(){
+		if(this.GetComponent<Seeker>()!=null){
+			this.GetComponent<Seeker>().enabled = true;
 		}
 	}
 }

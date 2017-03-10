@@ -239,7 +239,19 @@ public class GameGUI : MonoBehaviour {
 			selectedObjects.Add(primaryBuildings[1]);
 			selectedTextures.Add(selectedObjects[0].GetComponent<SpriteRenderer>().sprite.texture);
 		}
+
+		if(GUILayout.Button("Save Game")){
+			Camera.main.GetComponent<SaveLoadUtility>().SaveGame("sses");
+		}
+
+
 		GUILayout.EndHorizontal();
+		if(GUILayout.Button("Load Game")){
+			selectedTextures.Clear();
+			selectedObjects.Clear();
+			showUnitButton = false;
+			Camera.main.GetComponent<SaveLoadUtility>().LoadGame("sses");
+		}
 		GUILayout.EndVertical();
 
 	}
