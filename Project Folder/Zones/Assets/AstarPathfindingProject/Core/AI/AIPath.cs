@@ -107,7 +107,7 @@ public class AIPath : MonoBehaviour {
 	protected float lastRepath = -9999;
 
 	/** Current path which is followed */
-	protected Path path;
+	public Path path;
 
 	/** Cached CharacterController component */
 	protected CharacterController controller;

@@ -43,6 +43,7 @@ public class GameGUI : MonoBehaviour {
 
 	public GameObject selectionBox;
 	public GameObject newBox = null;
+	public GameObject targetObject = null;
 
 	public List<GameObject> primaryBuildings = new List<GameObject>();
 	public List<GameObject> selectedObjects = new List<GameObject>();
@@ -95,14 +96,8 @@ public class GameGUI : MonoBehaviour {
 			guiRects.Add(constructionMenuRect);
 
 			if(placingObject==false){
-				bool clickingGUI = false;
+				bool clickingGUI = checkClickOnGui();
 
-				foreach(Rect uiRect in guiRects){
-					if(uiRect.Contains(new Vector3(Input.mousePosition.x,Screen.height-Input.mousePosition.y,0))){
-						
-						clickingGUI = true;
-					}
-				}
 				if(clickingGUI){
 					
 				} else {
@@ -129,13 +124,19 @@ public class GameGUI : MonoBehaviour {
 					endSelectPosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
 					newBox.transform.position =  originalSelectPosition + (endSelectPosition - originalSelectPosition)/2;
 					newBox.GetComponent<BoxCollider2D>().size = new Vector2(Mathf.Abs(endSelectPosition.x - originalSelectPosition.x),Mathf.Abs(endSelectPosition.y - originalSelectPosition.y));
-					newBox.GetComponent<SelectionBox>().enabledBox = true;
+				newBox.GetComponent<SelectionBox>().rightClick = false;	
+				newBox.GetComponent<SelectionBox>().enabledBox = true;
 				}
 		}
 
 		if(Input.GetKeyDown(KeyCode.Mouse1)){
-			movementWaypoint = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-			moving = true;
+			//If you right click on an enemy
+			targetObject = null;
+			newBox = GameObject.Instantiate(selectionBox);
+			newBox.transform.position = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+			newBox.GetComponent<SelectionBox>().rightClick = true;	
+			newBox.GetComponent<SelectionBox>().enabledBox = true;
+
 		}
 
 		if(moving==true){
@@ -292,6 +293,41 @@ public class GameGUI : MonoBehaviour {
 			if(unitCount!=0){
 				for(int j = 0; j<unitCount; j++){
 					selectedTextures.Add(unitSelect);
+				}
+			}
+		}
+	}
+
+	bool checkClickOnGui(){
+		foreach(Rect uiRect in guiRects){
+			if(uiRect.Contains(new Vector3(Input.mousePosition.x,Screen.height-Input.mousePosition.y,0))){
+				return true;
+			} else {
+				return false;
+			}
+		}
+		return false;
+	}
+
+	public void setTargetObject(GameObject newTarget){
+		if(newTarget == null){
+			if(selectedObjects.Count>0){
+				foreach(GameObject selected in selectedObjects){
+					if(selected.GetComponent<Stats>().structure==false){
+						selected.GetComponent<Stats>().attackTarget = null;
+					}
+				}
+			}
+			movementWaypoint = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+			moving = true;
+		} else {
+			targetObject = newTarget;
+			if(selectedObjects.Count>0){
+				foreach(GameObject selected in selectedObjects){
+					if(selected.GetComponent<Stats>().structure==false){
+						selected.GetComponent<Stats>().attackTarget = targetObject;
+						selected.GetComponent<Stats>().startMove();
+					}
 				}
 			}
 		}
