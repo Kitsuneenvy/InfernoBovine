@@ -6,7 +6,7 @@ using Pathfinding;
 
 
 public enum auraInfluence {none = 0, lawful, holy, sinister, magical}
-public enum damageType {none = 0, Physical, Magical, Holy, Unholy}
+public enum damageType {none = 0, Physical, Magical, Holy, Unholy, Builder}
 
 [System.Serializable]
 public class Stats : MonoBehaviour {
@@ -14,6 +14,8 @@ public class Stats : MonoBehaviour {
 	public int cost = 10;
 	public List<GameObject> createdObjects = new List<GameObject>();
 	public bool structure = false;
+	public bool finishedBuilding = false;
+	public bool worker = false;
 
 	[DontSaveMember]
 	public bool moving = false;
@@ -34,6 +36,7 @@ public class Stats : MonoBehaviour {
 	public string tooltip;
 	public int team = 1;
 
+	public float maxHealth;
 	public float health;
 	public int armour;
 
@@ -71,6 +74,11 @@ public class Stats : MonoBehaviour {
 			//replace with play death anim later
 			Destroy(this.gameObject,0.01f);
 		}
+		if(finishedBuilding == false){
+			if(health == maxHealth){
+				finishedBuilding = true;
+			}
+		}
 		if(attackTarget!=null){
 			if(timeSinceLastRepath>repathDelay){
 				startmove = true;
@@ -96,7 +104,7 @@ public class Stats : MonoBehaviour {
 
 		if(moving == true){
 			if(currentPath!=null){
-				if(Vector3.Distance(this.transform.position,currentPath.vectorPath[currentWaypoint])>0.05f){
+				if(Vector3.Distance(this.transform.position,currentPath.vectorPath[currentWaypoint])>0.15f){
 					this.transform.position = Vector3.MoveTowards(this.transform.position,currentPath.vectorPath[currentWaypoint],speed*Time.deltaTime);
 				} else {
 					if(currentWaypoint<currentPath.vectorPath.Count-1){
@@ -158,11 +166,23 @@ public class Stats : MonoBehaviour {
 
 	void SendHit(){
 		//Delay moving until animation is complete
-		if(attackDamage > attackTarget.GetComponent<Stats>().armour){
-			attackTarget.GetComponent<Stats>().health -= attackDamage - attackTarget.GetComponent<Stats>().armour;
-		} else {
-			attackTarget.GetComponent<Stats>().health -= 1;
+		Stats targetStats = attackTarget.GetComponent<Stats>();
+		if(dmgType == damageType.Builder){
+			if(targetStats.structure == true){
+				if(targetStats.health<targetStats.maxHealth){
+					targetStats.health += attackDamage;
+				} else {
+					attackTarget = null;
+				}
+				return;
+			}
 		}
+		if(attackDamage > targetStats.armour){
+			targetStats.health -= attackDamage - targetStats.armour;
+		} else {
+			targetStats.health -= 1;
+		}
+
 	}
 
 		

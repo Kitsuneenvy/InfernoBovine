@@ -18,6 +18,9 @@ public class GameGUI : MonoBehaviour {
 	public bool newSelection = false;
 
 	bool showUnitButton = false;
+	bool workerSelected = false;
+
+	List<int> workerIndices = new List<int>();
 
 
 	Rect resourceMenuRect = new Rect(Screen.width/10,Screen.height/10,Screen.width/10,Screen.height/15);
@@ -52,6 +55,10 @@ public class GameGUI : MonoBehaviour {
 	Vector2 movementWaypoint = Vector2.zero;
 	bool moving = false;
 
+	GameObject objectToPlace = null;
+	GameObject objectPlacePreview = null;
+	GameObject newBuilding = null;
+
 	// Use this for initialization
 	void Start () {
 		constructionListRect = new Rect(constructionMenuRect.x,constructionMenuRect.y-Screen.height/3,constructionMenuRect.width,Screen.height/3);
@@ -61,6 +68,20 @@ public class GameGUI : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
+		if(objectToPlace!=null&&objectPlacePreview==null){
+			objectPlacePreview = GameObject.Instantiate(objectToPlace,new Vector2(Camera.main.ScreenToWorldPoint(Input.mousePosition).x,Camera.main.ScreenToWorldPoint(Input.mousePosition).y),Quaternion.identity) as GameObject;
+			objectPlacePreview.GetComponent<PolygonCollider2D>().enabled = false;
+		} else if(objectToPlace ==null){
+			GameObject.DestroyImmediate(objectPlacePreview);
+		}
+		if(objectPlacePreview!=null){
+			objectPlacePreview.transform.position = new Vector2(Camera.main.ScreenToWorldPoint(Input.mousePosition).x,Camera.main.ScreenToWorldPoint(Input.mousePosition).y);
+		}
+		if(!workerSelected){
+			primaryStructureListOpen = false;
+			secondaryStructureListOpen = false;
+			supportStructureListOpen = false;
+		}
 		if(primaryStructureListOpen||secondaryStructureListOpen||supportStructureListOpen){
 			if(!guiRects.Contains(constructionListRect)){
 				guiRects.Add(constructionListRect);
@@ -104,16 +125,22 @@ public class GameGUI : MonoBehaviour {
 					selectingObjects = true;
 					selectedObjects.Clear();
 					selectedTextures.Clear();
+					workerSelected = false;
 					showUnitButton = false;
 					newBox = GameObject.Instantiate(selectionBox);
 					originalSelectPosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
 				}
 			} else {
-				GameObject.Instantiate(selectedObjects[0],new Vector2(Camera.main.ScreenToWorldPoint(Input.mousePosition).x,Camera.main.ScreenToWorldPoint(Input.mousePosition).y),Quaternion.identity);
+				newBuilding = GameObject.Instantiate(objectToPlace,new Vector2(Camera.main.ScreenToWorldPoint(Input.mousePosition).x,Camera.main.ScreenToWorldPoint(Input.mousePosition).y),Quaternion.identity) as GameObject;
+				newBuilding.GetComponent<Stats>().health = 1;
+				newBuilding.GetComponent<Stats>().finishedBuilding = false;
 				placingObject = false;
-				gold-=selectedObjects[0].GetComponent<Stats>().cost;
-				selectedObjects.Clear();
-				selectedTextures.Clear();
+				gold-=objectToPlace.GetComponent<Stats>().cost;
+				objectToPlace = null;
+				if(workerSelected){
+					setTargetObject(newBuilding,true);
+				}
+				newBuilding = null;
 				this.GetComponent<AstarPath>().Scan();
 			}
 		}
@@ -124,8 +151,8 @@ public class GameGUI : MonoBehaviour {
 					endSelectPosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
 					newBox.transform.position =  originalSelectPosition + (endSelectPosition - originalSelectPosition)/2;
 					newBox.GetComponent<BoxCollider2D>().size = new Vector2(Mathf.Abs(endSelectPosition.x - originalSelectPosition.x),Mathf.Abs(endSelectPosition.y - originalSelectPosition.y));
-				newBox.GetComponent<SelectionBox>().rightClick = false;	
-				newBox.GetComponent<SelectionBox>().enabledBox = true;
+					newBox.GetComponent<SelectionBox>().rightClick = false;	
+					newBox.GetComponent<SelectionBox>().enabledBox = true;
 				}
 		}
 
@@ -167,19 +194,19 @@ public class GameGUI : MonoBehaviour {
 		}
 
 
-		if(constructionMenuOpen){
+		if(workerSelected){
 			constructionMenuRect = GUI.Window(2,constructionMenuRect,constructionMenuFunction,"");
 		}
 
-		if(primaryStructureListOpen){
+		if(primaryStructureListOpen&&workerSelected){
 			constructionListRect = GUI.Window(3,constructionListRect,primaryListFunction,"");
 		}
 
-		if(secondaryStructureListOpen){
+		if(secondaryStructureListOpen&&workerSelected){
 			constructionListRect = GUI.Window(3,constructionListRect,secondaryListFunction,"");
 		}
 
-		if(supportStructureListOpen){
+		if(supportStructureListOpen&&workerSelected){
 			constructionListRect = GUI.Window(3,constructionListRect,supportListFunction,"");
 		}
 
@@ -226,19 +253,11 @@ public class GameGUI : MonoBehaviour {
 	void primaryListFunction(int id){
 		GUILayout.BeginVertical();
 		GUILayout.BeginHorizontal();
-		if(GUILayout.Button(primaryBuildings[0].GetComponent<SpriteRenderer>().sprite.texture)){
-			selectedObjects.Clear();
-			selectedTextures.Clear();
-			placingObject = true;
-			selectedObjects.Add(primaryBuildings[0]);
-			selectedTextures.Add(selectedObjects[0].GetComponent<SpriteRenderer>().sprite.texture);
-		}
-		if(GUILayout.Button(primaryBuildings[1].GetComponent<SpriteRenderer>().sprite.texture)){
-			selectedObjects.Clear();
-			selectedTextures.Clear();
-			placingObject = true;
-			selectedObjects.Add(primaryBuildings[1]);
-			selectedTextures.Add(selectedObjects[0].GetComponent<SpriteRenderer>().sprite.texture);
+		foreach(GameObject building in primaryBuildings){
+			if(GUILayout.Button(building.GetComponent<SpriteRenderer>().sprite.texture)){
+				objectToPlace = building;
+				placingObject = true;
+			}
 		}
 
 		if(GUILayout.Button("Save Game")){
@@ -250,6 +269,7 @@ public class GameGUI : MonoBehaviour {
 		if(GUILayout.Button("Load Game")){
 			selectedTextures.Clear();
 			selectedObjects.Clear();
+			workerSelected = false;
 			showUnitButton = false;
 			Camera.main.GetComponent<SaveLoadUtility>().LoadGame("sses");
 		}
@@ -267,8 +287,13 @@ public class GameGUI : MonoBehaviour {
 
 	public void newSelectionFunction(){
 		if(selectedObjects.Count==1){
+			if(selectedObjects[0].GetComponent<Stats>().worker == true){
+				workerSelected = true;
+			} else {
+				workerSelected = false;
+			}
 			selectedTextures.Add(selectedObjects[0].GetComponent<SpriteRenderer>().sprite.texture);
-			if(selectedObjects[0].GetComponent<Stats>().createdObjects.Count>0){
+			if(selectedObjects[0].GetComponent<Stats>().createdObjects.Count>0&&selectedObjects[0].GetComponent<Stats>().finishedBuilding==true){
 				showUnitButton = true;
 			} else {
 				showUnitButton = false;
@@ -283,7 +308,10 @@ public class GameGUI : MonoBehaviour {
 				} else if (selectedObject.GetComponent<Stats>().structure == false){
 					unitCount++;
 				}
-			
+				if(selectedObject.GetComponent<Stats>().worker == true){
+					workerIndices.Add(selectedObjects.IndexOf(selectedObject));
+					workerSelected = true;
+				}
 			}
 			if(structureCount!=0){
 				for(int i = 0; i<structureCount; i++){
@@ -299,34 +327,40 @@ public class GameGUI : MonoBehaviour {
 	}
 
 	bool checkClickOnGui(){
+		bool guiClick = false;
 		foreach(Rect uiRect in guiRects){
 			if(uiRect.Contains(new Vector3(Input.mousePosition.x,Screen.height-Input.mousePosition.y,0))){
-				return true;
-			} else {
-				return false;
+				guiClick = true;
 			}
 		}
-		return false;
+		return guiClick;
 	}
 
-	public void setTargetObject(GameObject newTarget){
-		if(newTarget == null){
-			if(selectedObjects.Count>0){
-				foreach(GameObject selected in selectedObjects){
-					if(selected.GetComponent<Stats>().structure==false){
-						selected.GetComponent<Stats>().attackTarget = null;
+	public void setTargetObject(GameObject newTarget, bool workerAssign){
+		if(workerAssign){
+			foreach(int index in workerIndices){
+				selectedObjects[index].GetComponent<Stats>().attackTarget = newTarget;
+				selectedObjects[index].GetComponent<Stats>().startMove();
+			}
+		} else {
+			if(newTarget == null){
+				if(selectedObjects.Count>0){
+					foreach(GameObject selected in selectedObjects){
+						if(selected.GetComponent<Stats>().structure==false){
+							selected.GetComponent<Stats>().attackTarget = null;
+						}
 					}
 				}
-			}
-			movementWaypoint = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-			moving = true;
-		} else {
-			targetObject = newTarget;
-			if(selectedObjects.Count>0){
-				foreach(GameObject selected in selectedObjects){
-					if(selected.GetComponent<Stats>().structure==false){
-						selected.GetComponent<Stats>().attackTarget = targetObject;
-						selected.GetComponent<Stats>().startMove();
+				movementWaypoint = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+				moving = true;
+			} else {
+				targetObject = newTarget;
+				if(selectedObjects.Count>0){
+					foreach(GameObject selected in selectedObjects){
+						if(selected.GetComponent<Stats>().structure==false){
+							selected.GetComponent<Stats>().attackTarget = targetObject;
+							selected.GetComponent<Stats>().startMove();
+						}
 					}
 				}
 			}
