@@ -13,6 +13,11 @@ public class GameGUI : MonoBehaviour {
 	bool secondaryStructureListOpen = false;
 	bool supportStructureListOpen = false;
 
+	bool tooltipDisplay = false;
+	bool buildingHovered = false;
+	string tooltipLine1 = "1";
+	string tooltipLine2 = "2";
+
 	bool placingObject = false;
 	bool selectingObjects = false;
 	public bool newSelection = false;
@@ -27,6 +32,7 @@ public class GameGUI : MonoBehaviour {
 	Rect selectionMenuRect = new Rect(Screen.width/10,Screen.height-Screen.height/5,Screen.width/5,Screen.height/6);
 	Rect constructionMenuRect = new Rect(Screen.width-Screen.width/3-Screen.width/10,Screen.height-Screen.height/5,Screen.width/3,Screen.height/6);
 	Rect constructionListRect = new Rect(0,0,0,0);
+	Rect tooltipRect = new Rect(0,0,Screen.width/6,Screen.height/8);
 
 	List<Rect> guiRects = new List<Rect>();
 
@@ -49,6 +55,7 @@ public class GameGUI : MonoBehaviour {
 	public GameObject targetObject = null;
 
 	public List<GameObject> primaryBuildings = new List<GameObject>();
+	public List<string> primaryDescriptions = new List<string>();
 	public List<GameObject> selectedObjects = new List<GameObject>();
 	List<Texture2D> selectedTextures = new List<Texture2D>();
 
@@ -68,6 +75,12 @@ public class GameGUI : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
+		if(buildingHovered == true){
+			tooltipDisplay = true;
+		} else {
+			tooltipDisplay = false;
+		}
+		buildingHovered = false;
 		if(objectToPlace!=null&&objectPlacePreview==null){
 			objectPlacePreview = GameObject.Instantiate(objectToPlace,new Vector2(Camera.main.ScreenToWorldPoint(Input.mousePosition).x,Camera.main.ScreenToWorldPoint(Input.mousePosition).y),Quaternion.identity) as GameObject;
 			objectPlacePreview.GetComponent<PolygonCollider2D>().enabled = false;
@@ -209,6 +222,9 @@ public class GameGUI : MonoBehaviour {
 		if(supportStructureListOpen&&workerSelected){
 			constructionListRect = GUI.Window(3,constructionListRect,supportListFunction,"");
 		}
+		if(tooltipDisplay){
+			tooltipRect = GUI.Window(4,tooltipRect,tooltipFunction,"");
+		}
 
 
 	}
@@ -250,6 +266,8 @@ public class GameGUI : MonoBehaviour {
 		GUILayout.EndHorizontal();
 	}
 
+
+
 	void primaryListFunction(int id){
 		GUILayout.BeginVertical();
 		GUILayout.BeginHorizontal();
@@ -258,14 +276,26 @@ public class GameGUI : MonoBehaviour {
 				objectToPlace = building;
 				placingObject = true;
 			}
+			if(Event.current.type == EventType.Repaint&&GUILayoutUtility.GetLastRect().Contains(Event.current.mousePosition)){
+				tooltipRect.x = Input.mousePosition.x+15;
+				tooltipRect.y = Screen.height - Input.mousePosition.y+15;
+				foreach(string testString in primaryDescriptions){
+					if(testString.Contains(building.name)){
+						tooltipLine1 = testString;
+						tooltipLine1 = tooltipLine1.Replace("\\n","" + System.Environment.NewLine);
+					}
+				}
+				buildingHovered = true;
+			} 
 		}
+		GUILayout.EndHorizontal();
 
 		if(GUILayout.Button("Save Game")){
 			Camera.main.GetComponent<SaveLoadUtility>().SaveGame("sses");
 		}
 
 
-		GUILayout.EndHorizontal();
+
 		if(GUILayout.Button("Load Game")){
 			selectedTextures.Clear();
 			selectedObjects.Clear();
@@ -366,4 +396,11 @@ public class GameGUI : MonoBehaviour {
 			}
 		}
 	}
+
+	void tooltipFunction(int id){
+		GUILayout.BeginVertical();
+		GUILayout.Label(tooltipLine1);
+		GUILayout.EndVertical();
+	}
+
 }
