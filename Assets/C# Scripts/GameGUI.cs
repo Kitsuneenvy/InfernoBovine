@@ -13,17 +13,26 @@ public class GameGUI : MonoBehaviour {
 	bool secondaryStructureListOpen = false;
 	bool supportStructureListOpen = false;
 
+	bool tooltipDisplay = false;
+	bool buildingHovered = false;
+	string tooltipLine1 = "1";
+	string tooltipLine2 = "2";
+
 	bool placingObject = false;
 	bool selectingObjects = false;
 	public bool newSelection = false;
 
 	bool showUnitButton = false;
+	bool workerSelected = false;
+
+	List<int> workerIndices = new List<int>();
 
 
 	Rect resourceMenuRect = new Rect(Screen.width/10,Screen.height/10,Screen.width/10,Screen.height/15);
 	Rect selectionMenuRect = new Rect(Screen.width/10,Screen.height-Screen.height/5,Screen.width/5,Screen.height/6);
 	Rect constructionMenuRect = new Rect(Screen.width-Screen.width/3-Screen.width/10,Screen.height-Screen.height/5,Screen.width/3,Screen.height/6);
 	Rect constructionListRect = new Rect(0,0,0,0);
+	Rect tooltipRect = new Rect(0,0,Screen.width/6,Screen.height/8);
 
 	List<Rect> guiRects = new List<Rect>();
 
@@ -43,13 +52,19 @@ public class GameGUI : MonoBehaviour {
 
 	public GameObject selectionBox;
 	public GameObject newBox = null;
+	public GameObject targetObject = null;
 
 	public List<GameObject> primaryBuildings = new List<GameObject>();
+	public List<string> primaryDescriptions = new List<string>();
 	public List<GameObject> selectedObjects = new List<GameObject>();
 	List<Texture2D> selectedTextures = new List<Texture2D>();
 
 	Vector2 movementWaypoint = Vector2.zero;
 	bool moving = false;
+
+	GameObject objectToPlace = null;
+	GameObject objectPlacePreview = null;
+	GameObject newBuilding = null;
 
 	// Use this for initialization
 	void Start () {
@@ -60,6 +75,26 @@ public class GameGUI : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
+		if(buildingHovered == true){
+			tooltipDisplay = true;
+		} else {
+			tooltipDisplay = false;
+		}
+		buildingHovered = false;
+		if(objectToPlace!=null&&objectPlacePreview==null){
+			objectPlacePreview = GameObject.Instantiate(objectToPlace,new Vector2(Camera.main.ScreenToWorldPoint(Input.mousePosition).x,Camera.main.ScreenToWorldPoint(Input.mousePosition).y),Quaternion.identity) as GameObject;
+			objectPlacePreview.GetComponent<PolygonCollider2D>().enabled = false;
+		} else if(objectToPlace ==null){
+			GameObject.DestroyImmediate(objectPlacePreview);
+		}
+		if(objectPlacePreview!=null){
+			objectPlacePreview.transform.position = new Vector2(Camera.main.ScreenToWorldPoint(Input.mousePosition).x,Camera.main.ScreenToWorldPoint(Input.mousePosition).y);
+		}
+		if(!workerSelected){
+			primaryStructureListOpen = false;
+			secondaryStructureListOpen = false;
+			supportStructureListOpen = false;
+		}
 		if(primaryStructureListOpen||secondaryStructureListOpen||supportStructureListOpen){
 			if(!guiRects.Contains(constructionListRect)){
 				guiRects.Add(constructionListRect);
@@ -95,29 +130,31 @@ public class GameGUI : MonoBehaviour {
 			guiRects.Add(constructionMenuRect);
 
 			if(placingObject==false){
-				bool clickingGUI = false;
+				bool clickingGUI = checkClickOnGui();
 
-				foreach(Rect uiRect in guiRects){
-					if(uiRect.Contains(new Vector3(Input.mousePosition.x,Screen.height-Input.mousePosition.y,0))){
-						
-						clickingGUI = true;
-					}
-				}
 				if(clickingGUI){
 					
 				} else {
 					selectingObjects = true;
 					selectedObjects.Clear();
 					selectedTextures.Clear();
+					workerSelected = false;
 					showUnitButton = false;
 					newBox = GameObject.Instantiate(selectionBox);
 					originalSelectPosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
 				}
 			} else {
-				GameObject.Instantiate(selectedObjects[0],new Vector2(Camera.main.ScreenToWorldPoint(Input.mousePosition).x,Camera.main.ScreenToWorldPoint(Input.mousePosition).y),Quaternion.identity);
+				newBuilding = GameObject.Instantiate(objectToPlace,new Vector2(Camera.main.ScreenToWorldPoint(Input.mousePosition).x,Camera.main.ScreenToWorldPoint(Input.mousePosition).y),Quaternion.identity) as GameObject;
+				newBuilding.GetComponent<Stats>().health = 1;
+				newBuilding.GetComponent<Stats>().finishedBuilding = false;
 				placingObject = false;
-				gold-=selectedObjects[0].GetComponent<Stats>().cost;
-				selectedObjects.Clear();
+				gold-=objectToPlace.GetComponent<Stats>().cost;
+				objectToPlace = null;
+				if(workerSelected){
+					setTargetObject(newBuilding,true);
+				}
+				newBuilding = null;
+				this.GetComponent<AstarPath>().Scan();
 			}
 		}
 		if(Input.GetKeyUp(KeyCode.Mouse0)){
@@ -127,13 +164,19 @@ public class GameGUI : MonoBehaviour {
 					endSelectPosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
 					newBox.transform.position =  originalSelectPosition + (endSelectPosition - originalSelectPosition)/2;
 					newBox.GetComponent<BoxCollider2D>().size = new Vector2(Mathf.Abs(endSelectPosition.x - originalSelectPosition.x),Mathf.Abs(endSelectPosition.y - originalSelectPosition.y));
+					newBox.GetComponent<SelectionBox>().rightClick = false;	
 					newBox.GetComponent<SelectionBox>().enabledBox = true;
 				}
 		}
 
 		if(Input.GetKeyDown(KeyCode.Mouse1)){
-			movementWaypoint = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-			moving = true;
+			//If you right click on an enemy
+			targetObject = null;
+			newBox = GameObject.Instantiate(selectionBox);
+			newBox.transform.position = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+			newBox.GetComponent<SelectionBox>().rightClick = true;	
+			newBox.GetComponent<SelectionBox>().enabledBox = true;
+
 		}
 
 		if(moving==true){
@@ -164,20 +207,23 @@ public class GameGUI : MonoBehaviour {
 		}
 
 
-		if(constructionMenuOpen){
+		if(workerSelected){
 			constructionMenuRect = GUI.Window(2,constructionMenuRect,constructionMenuFunction,"");
 		}
 
-		if(primaryStructureListOpen){
+		if(primaryStructureListOpen&&workerSelected){
 			constructionListRect = GUI.Window(3,constructionListRect,primaryListFunction,"");
 		}
 
-		if(secondaryStructureListOpen){
+		if(secondaryStructureListOpen&&workerSelected){
 			constructionListRect = GUI.Window(3,constructionListRect,secondaryListFunction,"");
 		}
 
-		if(supportStructureListOpen){
+		if(supportStructureListOpen&&workerSelected){
 			constructionListRect = GUI.Window(3,constructionListRect,supportListFunction,"");
+		}
+		if(tooltipDisplay){
+			tooltipRect = GUI.Window(4,tooltipRect,tooltipFunction,"");
 		}
 
 
@@ -192,9 +238,10 @@ public class GameGUI : MonoBehaviour {
 				GUILayout.Label(selectTexture);
 			}
 		if(showUnitButton==true){
-			if(GUILayout.Button(selectedObjects[0].GetComponent<Stats>().createdObjects[0].GetComponent<SpriteRenderer>().sprite.texture)){
-				GameObject.Instantiate(selectedObjects[0].GetComponent<Stats>().createdObjects[0], (selectedObjects[0].transform.position+ Vector3.left),Quaternion.identity);
-				gold-=selectedObjects[0].GetComponent<Stats>().createdObjects[0].GetComponent<Stats>().cost;
+			int i = selectedObjects[0].GetComponent<Stats>().auraInf;
+			if(GUILayout.Button(selectedObjects[0].GetComponent<Stats>().createdObjects[i].GetComponent<SpriteRenderer>().sprite.texture)){
+				GameObject.Instantiate(selectedObjects[0].GetComponent<Stats>().createdObjects[i], (selectedObjects[0].transform.position+ Vector3.left),Quaternion.identity);
+				gold-=selectedObjects[0].GetComponent<Stats>().createdObjects[i].GetComponent<Stats>().cost;
 			}
 		}
 		GUILayout.EndHorizontal();
@@ -219,18 +266,43 @@ public class GameGUI : MonoBehaviour {
 		GUILayout.EndHorizontal();
 	}
 
+
+
 	void primaryListFunction(int id){
 		GUILayout.BeginVertical();
 		GUILayout.BeginHorizontal();
-		if(GUILayout.Button(primaryBuildings[0].GetComponent<SpriteRenderer>().sprite.texture)){
-			placingObject = true;
-			selectedObjects.Add(primaryBuildings[0]);
-		}
-		if(GUILayout.Button(primaryBuildings[1].GetComponent<SpriteRenderer>().sprite.texture)){
-			placingObject = true;
-			selectedObjects.Add(primaryBuildings[1]);
+		foreach(GameObject building in primaryBuildings){
+			if(GUILayout.Button(building.GetComponent<SpriteRenderer>().sprite.texture)){
+				objectToPlace = building;
+				placingObject = true;
+			}
+			if(Event.current.type == EventType.Repaint&&GUILayoutUtility.GetLastRect().Contains(Event.current.mousePosition)){
+				tooltipRect.x = Input.mousePosition.x+15;
+				tooltipRect.y = Screen.height - Input.mousePosition.y+15;
+				foreach(string testString in primaryDescriptions){
+					if(testString.Contains(building.name)){
+						tooltipLine1 = testString;
+						tooltipLine1 = tooltipLine1.Replace("\\n","" + System.Environment.NewLine);
+					}
+				}
+				buildingHovered = true;
+			} 
 		}
 		GUILayout.EndHorizontal();
+
+		if(GUILayout.Button("Save Game")){
+			Camera.main.GetComponent<SaveLoadUtility>().SaveGame("sses");
+		}
+
+
+
+		if(GUILayout.Button("Load Game")){
+			selectedTextures.Clear();
+			selectedObjects.Clear();
+			workerSelected = false;
+			showUnitButton = false;
+			Camera.main.GetComponent<SaveLoadUtility>().LoadGame("sses");
+		}
 		GUILayout.EndVertical();
 
 	}
@@ -245,8 +317,13 @@ public class GameGUI : MonoBehaviour {
 
 	public void newSelectionFunction(){
 		if(selectedObjects.Count==1){
+			if(selectedObjects[0].GetComponent<Stats>().worker == true){
+				workerSelected = true;
+			} else {
+				workerSelected = false;
+			}
 			selectedTextures.Add(selectedObjects[0].GetComponent<SpriteRenderer>().sprite.texture);
-			if(selectedObjects[0].GetComponent<Stats>().createdObjects.Count>0){
+			if(selectedObjects[0].GetComponent<Stats>().createdObjects.Count>0&&selectedObjects[0].GetComponent<Stats>().finishedBuilding==true){
 				showUnitButton = true;
 			} else {
 				showUnitButton = false;
@@ -261,7 +338,10 @@ public class GameGUI : MonoBehaviour {
 				} else if (selectedObject.GetComponent<Stats>().structure == false){
 					unitCount++;
 				}
-			
+				if(selectedObject.GetComponent<Stats>().worker == true){
+					workerIndices.Add(selectedObjects.IndexOf(selectedObject));
+					workerSelected = true;
+				}
 			}
 			if(structureCount!=0){
 				for(int i = 0; i<structureCount; i++){
@@ -275,4 +355,52 @@ public class GameGUI : MonoBehaviour {
 			}
 		}
 	}
+
+	bool checkClickOnGui(){
+		bool guiClick = false;
+		foreach(Rect uiRect in guiRects){
+			if(uiRect.Contains(new Vector3(Input.mousePosition.x,Screen.height-Input.mousePosition.y,0))){
+				guiClick = true;
+			}
+		}
+		return guiClick;
+	}
+
+	public void setTargetObject(GameObject newTarget, bool workerAssign){
+		if(workerAssign){
+			foreach(int index in workerIndices){
+				selectedObjects[index].GetComponent<Stats>().attackTarget = newTarget;
+				selectedObjects[index].GetComponent<Stats>().startMove();
+			}
+		} else {
+			if(newTarget == null){
+				if(selectedObjects.Count>0){
+					foreach(GameObject selected in selectedObjects){
+						if(selected.GetComponent<Stats>().structure==false){
+							selected.GetComponent<Stats>().attackTarget = null;
+						}
+					}
+				}
+				movementWaypoint = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+				moving = true;
+			} else {
+				targetObject = newTarget;
+				if(selectedObjects.Count>0){
+					foreach(GameObject selected in selectedObjects){
+						if(selected.GetComponent<Stats>().structure==false){
+							selected.GetComponent<Stats>().attackTarget = targetObject;
+							selected.GetComponent<Stats>().startMove();
+						}
+					}
+				}
+			}
+		}
+	}
+
+	void tooltipFunction(int id){
+		GUILayout.BeginVertical();
+		GUILayout.Label(tooltipLine1);
+		GUILayout.EndVertical();
+	}
+
 }
