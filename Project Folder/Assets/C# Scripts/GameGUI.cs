@@ -83,7 +83,7 @@ public class GameGUI : MonoBehaviour {
 		buildingHovered = false;
 		if(objectToPlace!=null&&objectPlacePreview==null){
 			objectPlacePreview = GameObject.Instantiate(objectToPlace,new Vector2(Camera.main.ScreenToWorldPoint(Input.mousePosition).x,Camera.main.ScreenToWorldPoint(Input.mousePosition).y),Quaternion.identity) as GameObject;
-			objectPlacePreview.GetComponent<PolygonCollider2D>().enabled = false;
+			objectPlacePreview.GetComponent<PolygonCollider2D>().isTrigger = true;
 		} else if(objectToPlace ==null){
 			GameObject.DestroyImmediate(objectPlacePreview);
 		}
