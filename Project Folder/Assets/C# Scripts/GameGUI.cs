@@ -84,6 +84,12 @@ public class GameGUI : MonoBehaviour {
 		if(objectToPlace!=null&&objectPlacePreview==null){
 			objectPlacePreview = GameObject.Instantiate(objectToPlace,new Vector2(Camera.main.ScreenToWorldPoint(Input.mousePosition).x,Camera.main.ScreenToWorldPoint(Input.mousePosition).y),Quaternion.identity) as GameObject;
 			objectPlacePreview.GetComponent<PolygonCollider2D>().isTrigger = true;
+	//		UnityEngineInternal.APIUpdaterRuntimeServices.AddComponent(objectPlacePreview, "Assets/C# Scripts/GameGUI.cs (87,4)", "NewBuildingPlacement");
+			objectPlacePreview.AddComponent<NewBuildingPlacement>();
+			if(objectPlacePreview.transform.childCount>0){
+				objectPlacePreview.transform.GetChild(0).GetComponent<NewBuildingPlacement>().enabled = true;
+				objectPlacePreview.transform.GetChild(0).gameObject.layer = 12;
+			}
 		} else if(objectToPlace ==null){
 			GameObject.DestroyImmediate(objectPlacePreview);
 		}
@@ -144,17 +150,23 @@ public class GameGUI : MonoBehaviour {
 					originalSelectPosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
 				}
 			} else {
-				newBuilding = GameObject.Instantiate(objectToPlace,new Vector2(Camera.main.ScreenToWorldPoint(Input.mousePosition).x,Camera.main.ScreenToWorldPoint(Input.mousePosition).y),Quaternion.identity) as GameObject;
-				newBuilding.GetComponent<Stats>().health = 1;
-				newBuilding.GetComponent<Stats>().finishedBuilding = false;
-				placingObject = false;
-				gold-=objectToPlace.GetComponent<Stats>().cost;
-				objectToPlace = null;
-				if(workerSelected){
-					setTargetObject(newBuilding,true);
+				if(objectPlacePreview.GetComponent<NewBuildingPlacement>().placeable == true){
+					newBuilding = GameObject.Instantiate(objectToPlace,new Vector2(Camera.main.ScreenToWorldPoint(Input.mousePosition).x,Camera.main.ScreenToWorldPoint(Input.mousePosition).y),Quaternion.identity) as GameObject;
+					newBuilding.GetComponent<Stats>().health = 1;
+					newBuilding.GetComponent<Stats>().finishedBuilding = false;
+					placingObject = false;
+					gold-=objectToPlace.GetComponent<Stats>().cost;
+					objectToPlace = null;
+					if(newBuilding.transform.childCount>0){
+						newBuilding.transform.GetChild(0).gameObject.layer = 10;
+						newBuilding.transform.GetChild(0).GetComponent<NewBuildingPlacement>().enabled = false;
+					}
+					if(workerSelected){
+						setTargetObject(newBuilding,true);
+					}
+					newBuilding = null;
+					this.GetComponent<AstarPath>().Scan();
 				}
-				newBuilding = null;
-				this.GetComponent<AstarPath>().Scan();
 			}
 		}
 		if(Input.GetKeyUp(KeyCode.Mouse0)){
