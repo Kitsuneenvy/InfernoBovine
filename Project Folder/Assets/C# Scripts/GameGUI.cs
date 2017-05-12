@@ -39,7 +39,7 @@ public class GameGUI : MonoBehaviour {
 	Vector2 originalSelectPosition = Vector2.zero;
 	Vector2 endSelectPosition = Vector2.zero;
 
-	int gold = 2000;
+	public int[] gold = new int[5];
 
 	public GUISkin defaultSkin;
 	public Texture primary;
@@ -68,6 +68,8 @@ public class GameGUI : MonoBehaviour {
 
 	// Use this for initialization
 	void Start () {
+		gold = new int[5];
+		gold[1] = 2000;
 		constructionListRect = new Rect(constructionMenuRect.x,constructionMenuRect.y-Screen.height/3,constructionMenuRect.width,Screen.height/3);
 
 
@@ -155,14 +157,14 @@ public class GameGUI : MonoBehaviour {
 					newBuilding.GetComponent<Stats>().health = 1;
 					newBuilding.GetComponent<Stats>().finishedBuilding = false;
 					placingObject = false;
-					gold-=objectToPlace.GetComponent<Stats>().cost;
+					gold[selectedObjects[0].GetComponent<Stats>().team]-=objectToPlace.GetComponent<Stats>().cost;
 					objectToPlace = null;
 					if(newBuilding.transform.childCount>0){
 						newBuilding.transform.GetChild(0).gameObject.layer = 10;
 						newBuilding.transform.GetChild(0).GetComponent<NewBuildingPlacement>().enabled = false;
 					}
 					if(workerSelected){
-						setTargetObject(newBuilding,true);
+						setTargetObject(newBuilding,true,false);
 					}
 					newBuilding = null;
 					this.GetComponent<AstarPath>().Scan();
@@ -242,7 +244,7 @@ public class GameGUI : MonoBehaviour {
 	}
 
 	void resourceMenuFunction(int id){
-		GUILayout.Label(gold.ToString());
+		GUILayout.Label(gold[1].ToString());
 	}
 	void selectionMenuFunction(int id){
 		GUILayout.BeginHorizontal();
@@ -253,7 +255,7 @@ public class GameGUI : MonoBehaviour {
 			int i = selectedObjects[0].GetComponent<Stats>().auraInf;
 			if(GUILayout.Button(selectedObjects[0].GetComponent<Stats>().createdObjects[i].GetComponent<SpriteRenderer>().sprite.texture)){
 				GameObject.Instantiate(selectedObjects[0].GetComponent<Stats>().createdObjects[i], (selectedObjects[0].transform.position+ Vector3.left),Quaternion.identity);
-				gold-=selectedObjects[0].GetComponent<Stats>().createdObjects[i].GetComponent<Stats>().cost;
+				gold[selectedObjects[0].GetComponent<Stats>().team]-=selectedObjects[0].GetComponent<Stats>().createdObjects[i].GetComponent<Stats>().cost;
 			}
 		}
 		GUILayout.EndHorizontal();
@@ -331,6 +333,7 @@ public class GameGUI : MonoBehaviour {
 		if(selectedObjects.Count==1){
 			if(selectedObjects[0].GetComponent<Stats>().worker == true){
 				workerSelected = true;
+				workerIndices.Add(selectedObjects.IndexOf(selectedObjects[0]));
 			} else {
 				workerSelected = false;
 			}
@@ -378,7 +381,22 @@ public class GameGUI : MonoBehaviour {
 		return guiClick;
 	}
 
-	public void setTargetObject(GameObject newTarget, bool workerAssign){
+	public void setTargetObject(GameObject newTarget, bool workerAssign,bool assignMine){
+		if(assignMine){
+			foreach(int index in workerIndices){
+				newTarget.GetComponent<Mine>().assignWorker(selectedObjects[index]);
+				selectedObjects[index].GetComponent<Stats>().assignedMine = newTarget;
+				selectedObjects[index].GetComponent<Stats>().attackTarget = newTarget;
+				selectedObjects[index].GetComponent<Stats>().startMove();
+			}
+		} else {
+			foreach(int index in workerIndices){
+				if(selectedObjects[index].GetComponent<Stats>().assignedMine!=null){
+					selectedObjects[index].GetComponent<Stats>().assignedMine.GetComponent<Mine>().removeWorker(selectedObjects[index]);
+					selectedObjects[index].GetComponent<Stats>().assignedMine = null;
+				}
+			}
+		}
 		if(workerAssign){
 			foreach(int index in workerIndices){
 				selectedObjects[index].GetComponent<Stats>().attackTarget = newTarget;

@@ -27,7 +27,7 @@ public class SelectionBox : MonoBehaviour {
 			lifespan-=Time.deltaTime;
 			if(lifespan<=0){
 				if(called==false){
-					Camera.main.gameObject.GetComponent<GameGUI>().setTargetObject(null,false);
+					Camera.main.gameObject.GetComponent<GameGUI>().setTargetObject(null,false,false);
 				}
 				GameObject.Destroy(this.gameObject,0.001f);
 			}
@@ -56,9 +56,11 @@ public class SelectionBox : MonoBehaviour {
 			} else {
 				if(collider.tag=="Unit"||collider.tag.Contains("Structure")){
 					if(collider.GetComponent<Stats>().team!=1){
-						Camera.main.gameObject.GetComponent<GameGUI>().setTargetObject(collider.gameObject,false);
+						Camera.main.gameObject.GetComponent<GameGUI>().setTargetObject(collider.gameObject,false,false);
 					}
-				} 
+				} else if (collider.tag =="Mine"){
+					Camera.main.gameObject.GetComponent<GameGUI>().setTargetObject(collider.gameObject,false,true);
+				}
 			}
 		}
 	}

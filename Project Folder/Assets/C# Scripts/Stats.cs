@@ -61,6 +61,8 @@ public class Stats : MonoBehaviour {
 
 	public int auraInf = 0;
 
+	public GameObject assignedMine = null;
+
 	// Use this for initialization
 	void Start () {
 		if(this.tag=="Unit"){
@@ -85,7 +87,7 @@ public class Stats : MonoBehaviour {
 				timeSinceLastRepath = 0;
 			}
 			timeSinceLastRepath+= Time.deltaTime;
-			if(Vector3.Distance(this.transform.position,attackTarget.transform.position)<attackRange&&timeSinceLastAttack>attackSpeed){
+			if(Vector3.Distance(this.transform.position,attackTarget.transform.position)<attackRange&&timeSinceLastAttack>attackSpeed&&attackTarget.tag!="Mine"){
 				SendHit();
 				timeSinceLastAttack = 0;
 			}
@@ -104,7 +106,7 @@ public class Stats : MonoBehaviour {
 
 		if(moving == true){
 			if(currentPath!=null){
-				if(Vector3.Distance(this.transform.position,currentPath.vectorPath[currentWaypoint])>0.15f){
+				if(Vector3.Distance(this.transform.position,currentPath.vectorPath[currentWaypoint])>0.01f){
 					this.transform.position = Vector3.MoveTowards(this.transform.position,currentPath.vectorPath[currentWaypoint],speed*Time.deltaTime);
 				} else {
 					if(currentWaypoint<currentPath.vectorPath.Count-1){
@@ -184,6 +186,8 @@ public class Stats : MonoBehaviour {
 		}
 
 	}
+
+
 
 		
 }
