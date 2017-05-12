@@ -106,7 +106,7 @@ public class Stats : MonoBehaviour {
 
 		if(moving == true){
 			if(currentPath!=null){
-				if(Vector3.Distance(this.transform.position,currentPath.vectorPath[currentWaypoint])>0.01f){
+				if(Vector3.Distance(this.transform.position,currentPath.vectorPath[currentWaypoint])>0.3f){
 					this.transform.position = Vector3.MoveTowards(this.transform.position,currentPath.vectorPath[currentWaypoint],speed*Time.deltaTime);
 				} else {
 					if(currentWaypoint<currentPath.vectorPath.Count-1){

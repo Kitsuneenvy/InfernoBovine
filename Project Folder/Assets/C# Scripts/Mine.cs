@@ -13,7 +13,7 @@ public class Mine : MonoBehaviour {
 	float currentWorkTime = 0.0f;
 	float closestReturnPointDistance = 9999.0f;
 	GameObject currentClosest = null;
-	bool workerWorking = false;
+	public bool workerWorking = false;
 
 	// Use this for initialization
 	void Start () {
@@ -35,8 +35,9 @@ public class Mine : MonoBehaviour {
 			activeWorker = null;
 		}
 		if(currentWorkers.Count>0){
-			if(!workerWorking){
-				foreach(GameObject worker in currentWorkers){
+			
+			foreach(GameObject worker in currentWorkers){
+				if(!workerWorking){
 					if(worker!=activeWorker){
 						if(Vector3.Distance(worker.transform.position,this.transform.position)<0.5f){
 							activeWorker = worker;
@@ -44,15 +45,15 @@ public class Mine : MonoBehaviour {
 							workerWorking = true;
 						}
 					}
-					if(Vector3.Distance(worker.transform.position,nearestReturnPoints[worker.GetComponent<Stats>().team].transform.position)<0.5f){
-						if(activeWorker = worker){
-							activeWorker = null;
-						}
-						if(worker.GetComponent<Worker>().goldCarried == true){
-							worker.GetComponent<Worker>().goldCarried = false;
-							GameObject.FindGameObjectWithTag("MainCamera").GetComponent<GameGUI>().gold[worker.GetComponent<Stats>().team]+=15;
-							worker.GetComponent<Stats>().attackTarget = this.gameObject;
-						}
+				}
+				if(Vector3.Distance(worker.transform.position,nearestReturnPoints[worker.GetComponent<Stats>().team].transform.position)<0.5f){
+					if(activeWorker == worker){
+						activeWorker = null;
+					}
+					if(worker.GetComponent<Worker>().goldCarried == true){
+						worker.GetComponent<Worker>().goldCarried = false;
+						GameObject.FindGameObjectWithTag("MainCamera").GetComponent<GameGUI>().gold[worker.GetComponent<Stats>().team]+=15;
+						worker.GetComponent<Stats>().attackTarget = worker.GetComponent<Stats>().assignedMine;
 					}
 				}
 			}

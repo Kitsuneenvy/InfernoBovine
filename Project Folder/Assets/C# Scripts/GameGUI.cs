@@ -392,6 +392,10 @@ public class GameGUI : MonoBehaviour {
 		} else {
 			foreach(int index in workerIndices){
 				if(selectedObjects[index].GetComponent<Stats>().assignedMine!=null){
+					if(selectedObjects[index].activeSelf == false){
+						selectedObjects[index].SetActive(true);
+						selectedObjects[index].GetComponent<Stats>().assignedMine.GetComponent<Mine>().workerWorking = false;
+					}
 					selectedObjects[index].GetComponent<Stats>().assignedMine.GetComponent<Mine>().removeWorker(selectedObjects[index]);
 					selectedObjects[index].GetComponent<Stats>().assignedMine = null;
 				}
